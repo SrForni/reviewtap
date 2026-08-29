@@ -2,7 +2,7 @@
 
 NFC card system that allows customers to easily leave a Google review while tracking and analyzing interactions with each NFC card.
 
-## 🏗️ Architecture
+## Architecture
 
 ```text
                     ┌───────────────┐
@@ -50,7 +50,7 @@ NFC card system that allows customers to easily leave a Google review while trac
 5. Lambda redirects the customer to the Google Reviews page.
 6. The dashboard displays activity and statistics.
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 nfc-google-reviews/
@@ -73,4 +73,4 @@ nfc-google-reviews/
 └── README.md
 ```
 
-> 🚧 Project under development.
+> Project under development.
