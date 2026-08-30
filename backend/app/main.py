@@ -148,11 +148,10 @@ def tap_card(card_id: str):
 
         card = response.data[0]
 
-        return {
-            "card_id": card["id"],
-            "business_name": card["business_name"],
-            "google_review_url": card["google_review_url"]
-        }
+        return RedirectResponse(
+            url=card["google_review_url"],
+            status_code=307
+        )
 
     except HTTPException:
         raise
