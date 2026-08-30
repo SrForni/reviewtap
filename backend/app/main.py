@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from supabase import create_client, Client
 
 load_dotenv()
@@ -30,7 +31,6 @@ app = FastAPI(
     version="0.1.0"
 )
 
-
 # -------------------------
 # Health check
 # -------------------------
@@ -41,7 +41,6 @@ def root():
         "status": "ok",
         "message": "ReviewTap API is running"
     }
-
 
 # -------------------------
 # Database test
@@ -68,7 +67,6 @@ def test_db():
             detail=f"Database connection failed: {str(e)}"
         )
 
-
 # -------------------------
 # Get all cards
 # -------------------------
@@ -90,7 +88,6 @@ def get_cards():
             status_code=500,
             detail=f"Failed to retrieve cards: {str(e)}"
         )
-
 
 # -------------------------
 # Get a specific card
@@ -123,7 +120,6 @@ def get_card(card_id: str):
             status_code=500,
             detail=f"Failed to retrieve card: {str(e)}"
         )
-
 
 # -------------------------
 # NFC tap
