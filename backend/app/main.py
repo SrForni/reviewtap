@@ -78,6 +78,7 @@ def verify_admin(
 
 class CardCreate(BaseModel):
     id: str
+    business_name: str
     google_review_url: str
 
 
@@ -129,14 +130,20 @@ def admin_page(_: bool = Depends(verify_admin)):
     return """
     <!DOCTYPE html>
     <html lang="en">
+
     <head>
+
         <meta charset="UTF-8">
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1.0">
+
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        >
 
         <title>ReviewTap Admin</title>
 
         <style>
+
             body {
                 font-family: Arial, sans-serif;
                 max-width: 500px;
@@ -204,8 +211,11 @@ def admin_page(_: bool = Depends(verify_admin)):
                 background: #f8d7da;
                 color: #721c24;
             }
+
         </style>
+
     </head>
+
 
     <body>
 
@@ -215,7 +225,11 @@ def admin_page(_: bool = Depends(verify_admin)):
 
             <p>Create a new NFC card.</p>
 
+
             <form id="cardForm">
+
+
+                <!-- Card ID -->
 
                 <label for="card_id">
                     Card ID
@@ -229,6 +243,24 @@ def admin_page(_: bool = Depends(verify_admin)):
                     required
                 >
 
+
+                <!-- Business Name -->
+
+                <label for="business_name">
+                    Business Name
+                </label>
+
+                <input
+                    type="text"
+                    id="business_name"
+                    name="business_name"
+                    placeholder="The Dublin Pub"
+                    required
+                >
+
+
+                <!-- Google Review URL -->
+
                 <label for="google_review_url">
                     Google Review URL
                 </label>
@@ -241,11 +273,13 @@ def admin_page(_: bool = Depends(verify_admin)):
                     required
                 >
 
+
                 <button type="submit">
                     Create Card
                 </button>
 
             </form>
+
 
             <div id="result"></div>
 
@@ -255,7 +289,9 @@ def admin_page(_: bool = Depends(verify_admin)):
         <script>
 
             const form = document.getElementById("cardForm");
+
             const result = document.getElementById("result");
+
 
             form.addEventListener("submit", async (event) => {
 
@@ -263,8 +299,12 @@ def admin_page(_: bool = Depends(verify_admin)):
 
                 result.style.display = "none";
 
+
                 const cardId =
                     document.getElementById("card_id").value;
+
+                const businessName =
+                    document.getElementById("business_name").value;
 
                 const googleReviewUrl =
                     document.getElementById("google_review_url").value;
@@ -281,8 +321,13 @@ def admin_page(_: bool = Depends(verify_admin)):
                         },
 
                         body: JSON.stringify({
+
                             id: cardId,
+
+                            business_name: businessName,
+
                             google_review_url: googleReviewUrl
+
                         })
 
                     });
@@ -292,13 +337,16 @@ def admin_page(_: bool = Depends(verify_admin)):
 
 
                     if (!response.ok) {
+
                         throw new Error(
                             data.detail || "Failed to create card"
                         );
+
                     }
 
 
                     result.className = "success";
+
                     result.style.display = "block";
 
                     result.textContent =
@@ -307,9 +355,11 @@ def admin_page(_: bool = Depends(verify_admin)):
 
                     form.reset();
 
+
                 } catch (error) {
 
                     result.className = "error";
+
                     result.style.display = "block";
 
                     result.textContent = error.message;
@@ -321,6 +371,7 @@ def admin_page(_: bool = Depends(verify_admin)):
         </script>
 
     </body>
+
     </html>
     """
 
@@ -331,7 +382,9 @@ def admin_page(_: bool = Depends(verify_admin)):
 
 @app.get("/cards")
 def get_cards():
+
     try:
+
         response = (
             supabase
             .table("cards")
@@ -342,6 +395,7 @@ def get_cards():
         return response.data
 
     except Exception as e:
+
         raise HTTPException(
             status_code=500,
             detail=f"Failed to retrieve cards: {str(e)}"
@@ -354,7 +408,9 @@ def get_cards():
 
 @app.get("/cards/{card_id}")
 def get_card(card_id: str):
+
     try:
+
         response = (
             supabase
             .table("cards")
@@ -364,6 +420,7 @@ def get_card(card_id: str):
         )
 
         if not response.data:
+
             raise HTTPException(
                 status_code=404,
                 detail="Card not found"
@@ -371,10 +428,14 @@ def get_card(card_id: str):
 
         return response.data[0]
 
+
     except HTTPException:
+
         raise
 
+
     except Exception as e:
+
         raise HTTPException(
             status_code=500,
             detail=f"Failed to retrieve card: {str(e)}"
@@ -390,6 +451,7 @@ def create_card(
     card: CardCreate,
     _: bool = Depends(verify_admin)
 ):
+
     try:
 
         # Check if the card already exists
@@ -403,6 +465,7 @@ def create_card(
         )
 
         if existing.data:
+
             raise HTTPException(
                 status_code=409,
                 detail="Card already exists"
@@ -415,23 +478,36 @@ def create_card(
             supabase
             .table("cards")
             .insert({
+
                 "id": card.id,
-                "google_review_url": card.google_review_url
+
+                "business_name": card.business_name,
+
+                "google_review_url": card.google_review_url,
+
+                "status": "assigned"
+
             })
             .execute()
         )
 
 
         return {
+
             "message": "Card created successfully",
+
             "card": response.data[0]
+
         }
 
 
     except HTTPException:
+
         raise
 
+
     except Exception as e:
+
         raise HTTPException(
             status_code=500,
             detail=f"Failed to create card: {str(e)}"
@@ -444,6 +520,7 @@ def create_card(
 
 @app.get("/tap/{card_id}")
 def tap_card(card_id: str):
+
     try:
 
         # 1. Buscar la tarjeta
@@ -457,6 +534,7 @@ def tap_card(card_id: str):
         )
 
         if not response.data:
+
             raise HTTPException(
                 status_code=404,
                 detail="Card not found"
@@ -468,23 +546,34 @@ def tap_card(card_id: str):
         # 2. Registrar el tap
 
         supabase.table("taps").insert({
+
             "card_id": card_id
+
         }).execute()
 
 
         # 3. Redirigir a Google Reviews
 
         return RedirectResponse(
+
             url=card["google_review_url"],
+
             status_code=307
+
         )
 
 
     except HTTPException:
+
         raise
 
+
     except Exception as e:
+
         raise HTTPException(
+
             status_code=500,
+
             detail=f"Failed to process tap: {str(e)}"
+
         )
