@@ -1,8 +1,10 @@
 import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import RedirectResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from pydantic import BaseModel
 from supabase import create_client, Client
 
 load_dotenv()
@@ -23,6 +25,18 @@ supabase: Client = create_client(
 )
 
 # -------------------------
+# Admin configuration
+# -------------------------
+
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+
+if not ADMIN_USERNAME or not ADMIN_PASSWORD:
+    raise RuntimeError("ADMIN_USERNAME or ADMIN_PASSWORD is not configured")
+
+security = HTTPBasic()
+
+# -------------------------
 # FastAPI
 # -------------------------
 
@@ -30,6 +44,35 @@ app = FastAPI(
     title="ReviewTap API",
     version="0.1.0"
 )
+
+# -------------------------
+# Admin authentication
+# -------------------------
+
+def verify_admin(
+    credentials: HTTPBasicCredentials = Depends(security)
+):
+    if (
+        credentials.username != ADMIN_USERNAME
+        or credentials.password != ADMIN_PASSWORD
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid admin credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+    return True
+
+
+# -------------------------
+# Card model
+# -------------------------
+
+class CardCreate(BaseModel):
+    id: str
+    google_review_url: str
+
 
 # -------------------------
 # Health check
@@ -41,6 +84,7 @@ def root():
         "status": "ok",
         "message": "ReviewTap API is running"
     }
+
 
 # -------------------------
 # Database test
@@ -67,6 +111,7 @@ def test_db():
             detail=f"Database connection failed: {str(e)}"
         )
 
+
 # -------------------------
 # Get all cards
 # -------------------------
@@ -88,6 +133,7 @@ def get_cards():
             status_code=500,
             detail=f"Failed to retrieve cards: {str(e)}"
         )
+
 
 # -------------------------
 # Get a specific card
@@ -120,6 +166,59 @@ def get_card(card_id: str):
             status_code=500,
             detail=f"Failed to retrieve card: {str(e)}"
         )
+
+
+# -------------------------
+# Create a card (ADMIN)
+# -------------------------
+
+@app.post("/cards")
+def create_card(
+    card: CardCreate,
+    _: bool = Depends(verify_admin)
+):
+    try:
+
+        # Check if the card already exists
+        existing = (
+            supabase
+            .table("cards")
+            .select("*")
+            .eq("id", card.id)
+            .execute()
+        )
+
+        if existing.data:
+            raise HTTPException(
+                status_code=409,
+                detail="Card already exists"
+            )
+
+        # Create the card
+        response = (
+            supabase
+            .table("cards")
+            .insert({
+                "id": card.id,
+                "google_review_url": card.google_review_url
+            })
+            .execute()
+        )
+
+        return {
+            "message": "Card created successfully",
+            "card": response.data[0]
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create card: {str(e)}"
+        )
+
 
 # -------------------------
 # NFC tap
