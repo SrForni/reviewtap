@@ -128,6 +128,7 @@ def get_card(card_id: str):
 @app.get("/tap/{card_id}")
 def tap_card(card_id: str):
     try:
+        # 1. Buscar la tarjeta
         response = (
             supabase
             .table("cards")
@@ -144,6 +145,12 @@ def tap_card(card_id: str):
 
         card = response.data[0]
 
+        # 2. Registrar el tap
+        supabase.table("taps").insert({
+            "card_id": card_id
+        }).execute()
+
+        # 3. Redirigir a Google Reviews
         return RedirectResponse(
             url=card["google_review_url"],
             status_code=307
